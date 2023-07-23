@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+
+  <PropertyGroup>
+    <Description>Provides the ability to manage the lifetime of memory by pinning buffers to prevent duplicate copies in ram and securely zeroing sensitive data when no longer needed.</Description>
+    <PackageTags>crypto secure buffer pin zero</PackageTags>
+  </PropertyGroup>
+
+</Project>
