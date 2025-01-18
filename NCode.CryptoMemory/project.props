@@ -2,8 +2,8 @@
 <Project>
 
   <PropertyGroup>
-    <Description>Provides the ability to manage the lifetime of memory by pinning buffers to prevent duplicate copies in ram and securely zeroing sensitive data when no longer needed.</Description>
-    <PackageTags>crypto secure buffer pin zero</PackageTags>
+    <Description>Provides the ability to manage the lifetime of memory by pinning buffers to prevent duplicate copies in ram and securely zeroing sensitive data when no longer needed. Also provides secure encodings that throw an exception when invalid bytes are encountered.</Description>
+    <PackageTags>crypto secure buffer pin zero poh encoding</PackageTags>
   </PropertyGroup>
 
 </Project>
