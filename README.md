@@ -127,6 +127,57 @@ public class SecureBufferWriter<T> : IBufferWriter<T>, IDisposable
 }
 ```
 
+### RefSpanLease
+
+```csharp
+namespace NCode.CryptoMemory;
+
+/// <summary>
+/// Represents a ref struct that holds a leased <see cref="ReadOnlySpan{T}"/> and manages the lifetime of its underlying owner.
+/// When disposed, the owner is also disposed, releasing the leased memory back to its source.
+/// </summary>
+/// <typeparam name="T">The type of elements in the span.</typeparam>
+public readonly ref struct RefSpanLease<T> : IDisposable
+{
+    /// <summary>
+    /// Gets the leased <see cref="ReadOnlySpan{T}"/>.
+    /// </summary>
+    public ReadOnlySpan<T> Span { get; }
+
+    /// <summary>
+    /// Disposes the underlying owner, releasing the leased memory back to its source.
+    /// </summary>
+    public void Dispose();
+}
+```
+
+### SequenceExtensions
+
+```csharp
+namespace NCode.CryptoMemory;
+
+/// <summary>
+/// Provides extension methods for <see cref="Sequence{T}"/> to enable secure memory operations.
+/// </summary>
+public static class SequenceExtensions
+{
+    /// <summary>
+    /// Gets a <see cref="RefSpanLease{T}"/> that provides access to the underlying data as a contiguous <see cref="ReadOnlySpan{T}"/>.
+    /// If the sequence is a single segment, the span is returned directly without allocation. Otherwise, the data is copied to a rented buffer from the crypto pool.
+    /// </summary>
+    /// <typeparam name="T">The type of elements in the sequence.</typeparam>
+    /// <param name="sequence">The sequence to convert.</param>
+    /// <param name="isSensitive">
+    /// <see langword="true"/> if the data is sensitive and should be securely cleared when disposed; otherwise, <see langword="false"/>.
+    /// </param>
+    /// <returns>
+    /// A <see cref="RefSpanLease{T}"/> that provides access to the sequence data as a contiguous span.
+    /// The caller must dispose the lease to release the underlying resources.
+    /// </returns>
+    public static RefSpanLease<T> GetSpanLease<T>(this Sequence<T> sequence, bool isSensitive);
+}
+```
+
 ## Release Notes
 
 * v1.0.0 - Initial release
@@ -134,3 +185,4 @@ public class SecureBufferWriter<T> : IBufferWriter<T>, IDisposable
 * v2.0.0 - Net8 upgrade. Refactored to use SecureMemoryPool. Added SecureEncoding. Removed HeapMemoryManager.
 * v2.1.0 - Net10 upgrade. Added SecureBufferWriter.
 * v2.1.1 - Fixing CI build
+* v2.2.0 - Added RefSpanLease and SequenceExtensions for secure span operations on sequences.

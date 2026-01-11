@@ -27,7 +27,7 @@ public class CryptoPoolTests
     public void ChoosePool_Secure()
     {
         const bool isSensitive = true;
-        var pool = CryptoPool.ChoosePool(isSensitive);
+        var pool = CryptoPool<byte>.ChoosePool(isSensitive);
         Assert.Same(SecureMemoryPool<byte>.Shared, pool);
     }
 
@@ -35,7 +35,7 @@ public class CryptoPoolTests
     public void ChoosePool_Standard()
     {
         const bool isSensitive = false;
-        var pool = CryptoPool.ChoosePool(isSensitive);
+        var pool = CryptoPool<byte>.ChoosePool(isSensitive);
         Assert.Same(MemoryPool<byte>.Shared, pool);
     }
 
@@ -45,7 +45,7 @@ public class CryptoPoolTests
     public void Rent_Span_Valid(bool isSensitive)
     {
         const int minBufferSize = 1024;
-        using var lease = CryptoPool.Rent(minBufferSize, isSensitive, out Span<byte> buffer);
+        using var lease = CryptoPool<byte>.Rent(minBufferSize, isSensitive, out Span<byte> buffer);
 
         if (isSensitive)
         {
@@ -66,7 +66,7 @@ public class CryptoPoolTests
     public void Rent_Memory_Valid(bool isSensitive)
     {
         const int minBufferSize = 1024;
-        using var lease = CryptoPool.Rent(minBufferSize, isSensitive, out Memory<byte> buffer);
+        using var lease = CryptoPool<byte>.Rent(minBufferSize, isSensitive, out Memory<byte> buffer);
 
         if (isSensitive)
         {
