@@ -133,3 +133,4 @@ public class SecureBufferWriter<T> : IBufferWriter<T>, IDisposable
 * v1.0.1 - Updating readme
 * v2.0.0 - Net8 upgrade. Refactored to use SecureMemoryPool. Added SecureEncoding. Removed HeapMemoryManager.
 * v2.1.0 - Net10 upgrade. Added SecureBufferWriter.
+* v2.1.1 - Fixing CI build
