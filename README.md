@@ -79,8 +79,57 @@ public static class CryptoPool
 }
 ```
 
+### SecureBufferWriter
+
+```csharp
+namespace NCode.CryptoMemory;
+
+/// <summary>
+/// Provides a secure buffer writer that uses <see cref="SecureMemoryPool{T}"/> for memory allocation,
+/// ensuring sensitive data is securely managed and cleared when disposed.
+/// </summary>
+public class SecureBufferWriter<T> : IBufferWriter<T>, IDisposable
+{
+    /// <summary>
+    /// Gets the length of the written data.
+    /// </summary>
+    public long Length { get; }
+
+    /// <summary>
+    /// Gets the written data as a read-only sequence.
+    /// </summary>
+    public ReadOnlySequence<T> AsReadOnlySequence { get; }
+
+    /// <summary>
+    /// Disposes the buffer writer and releases all associated memory.
+    /// </summary>
+    public void Dispose();
+
+    /// <summary>
+    /// Advances the writer by the specified number of elements.
+    /// </summary>
+    /// <param name="count">The number of elements written.</param>
+    public void Advance(int count);
+
+    /// <summary>
+    /// Returns a <see cref="Span{T}"/> to write to that is at least the requested size.
+    /// </summary>
+    /// <param name="sizeHint">The minimum length of the returned span. If 0, a non-empty buffer is returned.</param>
+    /// <returns>A span of at least <paramref name="sizeHint"/> in length.</returns>
+    public Span<T> GetSpan(int sizeHint = 0);
+
+    /// <summary>
+    /// Returns a <see cref="Memory{T}"/> to write to that is at least the requested size.
+    /// </summary>
+    /// <param name="sizeHint">The minimum length of the returned memory. If 0, a non-empty buffer is returned.</param>
+    /// <returns>A memory block of at least <paramref name="sizeHint"/> in length.</returns>
+    public Memory<T> GetMemory(int sizeHint = 0);
+}
+```
+
 ## Release Notes
 
 * v1.0.0 - Initial release
 * v1.0.1 - Updating readme
 * v2.0.0 - Net8 upgrade. Refactored to use SecureMemoryPool. Added SecureEncoding. Removed HeapMemoryManager.
+* v2.1.0 - Net10 upgrade. Added SecureBufferWriter.
