@@ -24,29 +24,39 @@ using JetBrains.Annotations;
 namespace NCode.CryptoMemory;
 
 /// <summary>
-/// A high-performance ref struct implementation of <see cref="IBufferWriter{T}"/> that writes to a fixed-size buffer.
+/// A high-performance class implementation of <see cref="IBufferWriter{T}"/> that writes to a fixed-size buffer.
 /// Unlike growable buffer writers, this implementation cannot resize and will throw if the buffer capacity is exceeded.
 /// </summary>
 /// <typeparam name="T">The type of elements in the buffer.</typeparam>
-/// <param name="buffer">The fixed-size buffer to write to.</param>
 /// <remarks>
 /// <para>
-/// This struct is designed for scenarios where the maximum buffer size is known upfront and no heap allocations are desired.
+/// This class is designed for scenarios where the maximum buffer size is known upfront and no heap allocations are desired
+/// during write operations.
 /// </para>
 /// <para>
-/// Since this is a ref struct, it can only be used on the stack and cannot be boxed or stored in fields of reference types.
+/// Unlike <see cref="FixedSpanBufferWriter{T}"/>, this class can be stored in fields and passed to async methods
+/// because it uses <see cref="Memory{T}"/> instead of <see cref="Span{T}"/>.
 /// </para>
 /// </remarks>
 [PublicAPI]
-public ref struct RefFixedBufferWriter<T>(Span<T> buffer) : IBufferWriter<T>
+public class FixedMemoryBufferWriter<T> : IBufferWriter<T>
 {
-    private Span<T> Buffer { get; } = buffer;
+    private Memory<T> Buffer { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FixedMemoryBufferWriter{T}"/> class with the specified buffer.
+    /// </summary>
+    /// <param name="buffer">The fixed-size buffer to write to.</param>
+    public FixedMemoryBufferWriter(Memory<T> buffer)
+    {
+        Buffer = buffer;
+    }
 
     /// <summary>
     /// Gets the total capacity of the underlying buffer.
     /// </summary>
     /// <value>The total number of elements that the buffer can hold.</value>
-    public readonly int Capacity => Buffer.Length;
+    public int Capacity => Buffer.Length;
 
     /// <summary>
     /// Gets the number of elements that have been written to the buffer.
@@ -58,18 +68,31 @@ public ref struct RefFixedBufferWriter<T>(Span<T> buffer) : IBufferWriter<T>
     /// Gets the amount of free space remaining in the buffer.
     /// </summary>
     /// <value>The number of elements that can still be written before the buffer is full.</value>
-    public readonly int FreeCapacity => Buffer.Length - WrittenCount;
+    public int FreeCapacity => Buffer.Length - WrittenCount;
 
     /// <summary>
-    /// Gets a <see cref="ReadOnlySpan{T}"/> of the data that has been written to the buffer.
+    /// Gets a <see cref="ReadOnlyMemory{T}"/> of the data that has been written to the buffer.
     /// </summary>
-    /// <value>A read-only span containing all written elements.</value>
-    public readonly ReadOnlySpan<T> WrittenSpan
+    /// <value>A read-only memory containing all written elements.</value>
+    public ReadOnlyMemory<T> WrittenMemory
     {
         get
         {
             Debug.Assert(WrittenCount >= 0);
             return Buffer[..WrittenCount];
+        }
+    }
+
+    /// <summary>
+    /// Gets a <see cref="ReadOnlySpan{T}"/> of the data that has been written to the buffer.
+    /// </summary>
+    /// <value>A read-only span containing all written elements.</value>
+    public ReadOnlySpan<T> WrittenSpan
+    {
+        get
+        {
+            Debug.Assert(WrittenCount >= 0);
+            return Buffer.Span[..WrittenCount];
         }
     }
 
@@ -95,7 +118,7 @@ public ref struct RefFixedBufferWriter<T>(Span<T> buffer) : IBufferWriter<T>
     public void Reset()
     {
         Debug.Assert(WrittenCount >= 0);
-        Buffer[..WrittenCount].Clear();
+        Buffer.Span[..WrittenCount].Clear();
         WrittenCount = 0;
     }
 
@@ -129,6 +152,38 @@ public ref struct RefFixedBufferWriter<T>(Span<T> buffer) : IBufferWriter<T>
     }
 
     /// <summary>
+    /// Returns a <see cref="Memory{T}"/> to write to that is at least the requested size.
+    /// </summary>
+    /// <param name="sizeHint">The minimum length of the returned <see cref="Memory{T}"/>. If 0, a non-empty buffer is returned if space is available.</param>
+    /// <returns>A <see cref="Memory{T}"/> representing the available space for writing.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="sizeHint"/> is negative.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The requested size exceeds the available free capacity. This buffer cannot grow.
+    /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Memory<T> GetMemory(int sizeHint = 0)
+    {
+        Debug.Assert(WrittenCount >= 0);
+
+        if (sizeHint < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(sizeHint), sizeHint, "Size hint cannot be negative.");
+        }
+
+        var freeCapacity = Buffer.Length - WrittenCount;
+
+        if (sizeHint > freeCapacity)
+        {
+            throw new InvalidOperationException(
+                $"The requested size ({sizeHint}) exceeds the available free capacity ({freeCapacity}). This buffer cannot grow.");
+        }
+
+        return Buffer[WrittenCount..];
+    }
+
+    /// <summary>
     /// Returns a <see cref="Span{T}"/> to write to that is at least the requested size.
     /// </summary>
     /// <param name="sizeHint">The minimum length of the returned <see cref="Span{T}"/>. If 0, a non-empty buffer is returned if space is available.</param>
@@ -157,18 +212,7 @@ public ref struct RefFixedBufferWriter<T>(Span<T> buffer) : IBufferWriter<T>
                 $"The requested size ({sizeHint}) exceeds the available free capacity ({freeCapacity}). This buffer cannot grow.");
         }
 
-        return Buffer[WrittenCount..];
-    }
-
-    /// <summary>
-    /// This method is not supported because <see cref="Memory{T}"/> cannot be created from a <see cref="Span{T}"/>.
-    /// </summary>
-    /// <param name="sizeHint">The minimum length of the returned <see cref="Memory{T}"/>.</param>
-    /// <returns>This method always throws.</returns>
-    /// <exception cref="NotSupportedException">Always thrown. Use <see cref="GetSpan"/> instead.</exception>
-    public Memory<T> GetMemory(int sizeHint = 0)
-    {
-        throw new NotSupportedException(
-            $"{nameof(RefFixedBufferWriter<T>)} does not support {nameof(GetMemory)} because Memory<T> cannot be created from a Span<T>. Use {nameof(GetSpan)} instead.");
+        return Buffer.Span[WrittenCount..];
     }
 }
+

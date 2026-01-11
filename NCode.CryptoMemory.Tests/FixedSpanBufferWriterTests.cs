@@ -18,13 +18,13 @@
 
 namespace NCode.CryptoMemory.Tests;
 
-public class RefFixedBufferWriterTests
+public class FixedSpanBufferWriterTests
 {
     [Fact]
     public void Constructor_Valid()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         Assert.Equal(100, writer.Capacity);
         Assert.Equal(0, writer.WrittenCount);
@@ -35,7 +35,7 @@ public class RefFixedBufferWriterTests
     [Fact]
     public void Constructor_EmptyBuffer_Valid()
     {
-        var writer = new RefFixedBufferWriter<byte>(Span<byte>.Empty);
+        var writer = new FixedSpanBufferWriter<byte>(Span<byte>.Empty);
 
         Assert.Equal(0, writer.Capacity);
         Assert.Equal(0, writer.WrittenCount);
@@ -47,7 +47,7 @@ public class RefFixedBufferWriterTests
     public void Capacity_ReturnsBufferLength()
     {
         Span<byte> buffer = stackalloc byte[256];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         Assert.Equal(256, writer.Capacity);
     }
@@ -56,7 +56,7 @@ public class RefFixedBufferWriterTests
     public void WrittenCount_AfterAdvance_ReturnsCorrectCount()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         writer.Advance(50);
 
@@ -67,7 +67,7 @@ public class RefFixedBufferWriterTests
     public void FreeCapacity_AfterAdvance_ReturnsCorrectValue()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         writer.Advance(30);
 
@@ -78,7 +78,7 @@ public class RefFixedBufferWriterTests
     public void WrittenSpan_ReturnsWrittenData()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         var span = writer.GetSpan(5);
         span[0] = 1;
@@ -101,7 +101,7 @@ public class RefFixedBufferWriterTests
     public void Clear_ResetsWrittenCount()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         var span = writer.GetSpan(50);
         span[..50].Fill(0xFF);
@@ -119,7 +119,7 @@ public class RefFixedBufferWriterTests
     public void Clear_DoesNotClearBufferContents()
     {
         var buffer = new byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         var span = writer.GetSpan(5);
         span[0] = 0xAA;
@@ -139,7 +139,7 @@ public class RefFixedBufferWriterTests
     public void Reset_ClearsBufferContents()
     {
         var buffer = new byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         var span = writer.GetSpan(5);
         span[0] = 0xAA;
@@ -163,7 +163,7 @@ public class RefFixedBufferWriterTests
     {
         var buffer = new byte[100];
         buffer[10] = 0xFF; // Set a value beyond the written area
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         var span = writer.GetSpan(5);
         span[..5].Fill(0xAA);
@@ -182,7 +182,7 @@ public class RefFixedBufferWriterTests
     public void Advance_Valid()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         writer.Advance(25);
         Assert.Equal(25, writer.WrittenCount);
@@ -195,7 +195,7 @@ public class RefFixedBufferWriterTests
     public void Advance_Zero_Valid()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         writer.Advance(0);
 
@@ -206,7 +206,7 @@ public class RefFixedBufferWriterTests
     public void Advance_NegativeCount_ThrowsArgumentOutOfRangeException()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         ArgumentOutOfRangeException? ex = null;
         try
@@ -226,7 +226,7 @@ public class RefFixedBufferWriterTests
     public void Advance_ExceedsCapacity_ThrowsInvalidOperationException()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         InvalidOperationException? ex = null;
         try
@@ -246,7 +246,7 @@ public class RefFixedBufferWriterTests
     public void Advance_ExactlyToCapacity_Valid()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         writer.Advance(100);
 
@@ -258,7 +258,7 @@ public class RefFixedBufferWriterTests
     public void GetSpan_ReturnsAvailableSpace()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         var span = writer.GetSpan();
 
@@ -269,7 +269,7 @@ public class RefFixedBufferWriterTests
     public void GetSpan_AfterAdvance_ReturnsRemainingSpace()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         writer.Advance(30);
         var span = writer.GetSpan();
@@ -281,7 +281,7 @@ public class RefFixedBufferWriterTests
     public void GetSpan_WithSizeHint_ReturnsAtLeastRequestedSize()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         var span = writer.GetSpan(50);
 
@@ -292,7 +292,7 @@ public class RefFixedBufferWriterTests
     public void GetSpan_SizeHintZero_ReturnsAllAvailableSpace()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         var span = writer.GetSpan(0);
 
@@ -303,7 +303,7 @@ public class RefFixedBufferWriterTests
     public void GetSpan_NegativeSizeHint_ThrowsArgumentOutOfRangeException()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         ArgumentOutOfRangeException? ex = null;
         try
@@ -323,7 +323,7 @@ public class RefFixedBufferWriterTests
     public void GetSpan_SizeHintExceedsFreeCapacity_ThrowsInvalidOperationException()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         writer.Advance(50);
 
@@ -345,7 +345,7 @@ public class RefFixedBufferWriterTests
     public void GetSpan_SizeHintExactlyFreeCapacity_Valid()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         writer.Advance(50);
         var span = writer.GetSpan(50);
@@ -357,7 +357,7 @@ public class RefFixedBufferWriterTests
     public void GetMemory_ThrowsNotSupportedException()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         NotSupportedException? ex = null;
         try
@@ -378,7 +378,7 @@ public class RefFixedBufferWriterTests
     public void GetMemory_WithSizeHint_ThrowsNotSupportedException()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         NotSupportedException? ex = null;
         try
@@ -398,7 +398,7 @@ public class RefFixedBufferWriterTests
     public void WriteAndRead_MultipleOperations_Valid()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         // First write
         var span1 = writer.GetSpan(10);
@@ -429,7 +429,7 @@ public class RefFixedBufferWriterTests
     public void GenericType_Int32_Works()
     {
         Span<int> buffer = stackalloc int[50];
-        var writer = new RefFixedBufferWriter<int>(buffer);
+        var writer = new FixedSpanBufferWriter<int>(buffer);
 
         var span = writer.GetSpan(5);
         span[0] = 100;
@@ -448,7 +448,7 @@ public class RefFixedBufferWriterTests
     public void GenericType_Char_Works()
     {
         Span<char> buffer = stackalloc char[50];
-        var writer = new RefFixedBufferWriter<char>(buffer);
+        var writer = new FixedSpanBufferWriter<char>(buffer);
 
         var span = writer.GetSpan(5);
         "Hello".AsSpan().CopyTo(span);
@@ -463,7 +463,7 @@ public class RefFixedBufferWriterTests
     public void FillEntireBuffer_Valid()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         var span = writer.GetSpan(100);
         span.Fill(0xAB);
@@ -481,7 +481,7 @@ public class RefFixedBufferWriterTests
     public void ClearAndReuse_Valid()
     {
         Span<byte> buffer = stackalloc byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         // First use
         var span1 = writer.GetSpan(50);
@@ -506,7 +506,7 @@ public class RefFixedBufferWriterTests
     public void ResetAndReuse_Valid()
     {
         var buffer = new byte[100];
-        var writer = new RefFixedBufferWriter<byte>(buffer);
+        var writer = new FixedSpanBufferWriter<byte>(buffer);
 
         // First use
         var span1 = writer.GetSpan(50);
