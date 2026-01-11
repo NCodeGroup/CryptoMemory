@@ -178,6 +178,90 @@ public static class SequenceExtensions
 }
 ```
 
+### RefFixedBufferWriter
+
+```csharp
+namespace NCode.CryptoMemory;
+
+/// <summary>
+/// A high-performance ref struct implementation of <see cref="IBufferWriter{T}"/> that writes to a fixed-size buffer.
+/// Unlike growable buffer writers, this implementation cannot resize and will throw if the buffer capacity is exceeded.
+/// </summary>
+/// <typeparam name="T">The type of elements in the buffer.</typeparam>
+public ref struct RefFixedBufferWriter<T> : IBufferWriter<T>
+{
+    /// <summary>
+    /// Gets the total capacity of the underlying buffer.
+    /// </summary>
+    public int Capacity { get; }
+
+    /// <summary>
+    /// Gets the number of elements that have been written to the buffer.
+    /// </summary>
+    public int WrittenCount { get; }
+
+    /// <summary>
+    /// Gets the amount of free space remaining in the buffer.
+    /// </summary>
+    public int FreeCapacity { get; }
+
+    /// <summary>
+    /// Gets a <see cref="ReadOnlySpan{T}"/> of the data that has been written to the buffer.
+    /// </summary>
+    public ReadOnlySpan<T> WrittenSpan { get; }
+
+    /// <summary>
+    /// Clears the written data by resetting the write position to zero.
+    /// Does not clear the underlying buffer contents.
+    /// </summary>
+    public void Clear();
+
+    /// <summary>
+    /// Resets the buffer writer by clearing all written data and zeroing out the underlying buffer.
+    /// Use this method when the buffer may contain sensitive data that should be securely cleared.
+    /// </summary>
+    public void Reset();
+
+    /// <summary>
+    /// Advances the write position by the specified count.
+    /// </summary>
+    /// <param name="count">The number of elements that have been written to the buffer.</param>
+    public void Advance(int count);
+
+    /// <summary>
+    /// Returns a <see cref="Span{T}"/> to write to that is at least the requested size.
+    /// </summary>
+    /// <param name="sizeHint">The minimum length of the returned span. If 0, a non-empty buffer is returned if space is available.</param>
+    /// <returns>A span representing the available space for writing.</returns>
+    public Span<T> GetSpan(int sizeHint = 0);
+
+    /// <summary>
+    /// This method is not supported. Use <see cref="GetSpan"/> instead.
+    /// </summary>
+    public Memory<T> GetMemory(int sizeHint = 0);
+}
+```
+
+### SpanExtensions
+
+```csharp
+namespace NCode.CryptoMemory;
+
+/// <summary>
+/// Provides extension methods for <see cref="Span{T}"/> to enable buffer writing operations.
+/// </summary>
+public static class SpanExtensions
+{
+    /// <summary>
+    /// Creates a <see cref="RefFixedBufferWriter{T}"/> that writes to this span.
+    /// </summary>
+    /// <typeparam name="T">The type of elements in the span.</typeparam>
+    /// <param name="span">The span to write to.</param>
+    /// <returns>A <see cref="RefFixedBufferWriter{T}"/> that can be used to write data to the span.</returns>
+    public static RefFixedBufferWriter<T> GetFixedBufferWriter<T>(this Span<T> span);
+}
+```
+
 ## Release Notes
 
 * v1.0.0 - Initial release
@@ -186,3 +270,4 @@ public static class SequenceExtensions
 * v2.1.0 - Net10 upgrade. Added SecureBufferWriter.
 * v2.1.1 - Fixing CI build
 * v2.2.0 - Added RefSpanLease and SequenceExtensions for secure span operations on sequences.
+* v2.3.0 - Added RefFixedBufferWriter and SpanExtensions for high-performance fixed-size buffer writing.
