@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -81,7 +81,7 @@ public static class CryptoPool<T>
     {
         var pool = ChoosePool(isSensitive);
         var lease = pool.Rent(minBufferSize);
-        buffer = lease.Memory.Span[..minBufferSize];
+        buffer = lease.Memory.Span.Slice(0, Math.Min(lease.Memory.Length, minBufferSize));
         return lease;
     }
 
@@ -99,7 +99,7 @@ public static class CryptoPool<T>
     {
         var pool = ChoosePool(isSensitive);
         var lease = pool.Rent(minBufferSize);
-        buffer = lease.Memory[..minBufferSize];
+        buffer = lease.Memory.Slice(0, Math.Min(lease.Memory.Length, minBufferSize));
         return lease;
     }
 }
