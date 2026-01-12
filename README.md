@@ -76,6 +76,85 @@ public static class CryptoPool
         bool isSensitive,
         out Memory<byte> buffer
     );
+
+    /// <summary>
+    /// Creates a pinned byte array wrapped in a <see cref="SecureArrayLifetime{T}"/> that securely zeroes the memory upon disposal.
+    /// </summary>
+    /// <param name="length">The length of the array to allocate.</param>
+    /// <returns>
+    /// A <see cref="SecureArrayLifetime{T}"/> that manages the lifetime of the pinned array and ensures
+    /// the memory is securely zeroed when disposed.
+    /// </returns>
+    public static SecureArrayLifetime<byte> CreatePinnedArray(int length);
+}
+```
+
+### SecureSpanLifetime
+
+```csharp
+namespace NCode.CryptoMemory;
+
+/// <summary>
+/// A ref struct that wraps a <see cref="Span{T}"/> and securely zeroes its memory upon disposal.
+/// This struct assumes lifecycle ownership of the span, ensuring sensitive data is cleared
+/// when the lifetime ends.
+/// </summary>
+/// <typeparam name="T">The type of elements in the span. Must be an unmanaged value type.</typeparam>
+public readonly ref struct SecureSpanLifetime<T> : IDisposable
+    where T : struct
+{
+    /// <summary>
+    /// Gets the underlying span managed by this lifetime.
+    /// </summary>
+    public Span<T> Span { get; }
+
+    /// <summary>
+    /// Implicitly converts a <see cref="SecureSpanLifetime{T}"/> to its underlying <see cref="Span{T}"/>.
+    /// </summary>
+    public static implicit operator Span<T>(SecureSpanLifetime<T> lifetime);
+
+    /// <summary>
+    /// Securely zeroes the memory of the underlying span using cryptographic memory clearing.
+    /// </summary>
+    public void Dispose();
+}
+```
+
+### SecureArrayLifetime
+
+```csharp
+namespace NCode.CryptoMemory;
+
+/// <summary>
+/// A ref struct that allocates a pinned array and securely zeroes its memory upon disposal.
+/// This struct assumes lifecycle ownership of the allocated array, ensuring sensitive data
+/// is cleared when the lifetime ends.
+/// </summary>
+/// <typeparam name="T">The type of elements in the array. Must be an unmanaged value type.</typeparam>
+public readonly ref struct SecureArrayLifetime<T> : IDisposable
+    where T : struct
+{
+    /// <summary>
+    /// Creates a new <see cref="SecureArrayLifetime{T}"/> with the specified length.
+    /// </summary>
+    /// <param name="length">The length of the array to allocate.</param>
+    /// <returns>A new <see cref="SecureArrayLifetime{T}"/> instance.</returns>
+    public static SecureArrayLifetime<T> Create(int length);
+
+    /// <summary>
+    /// Gets the pinned array managed by this lifetime.
+    /// </summary>
+    public T[] PinnedArray { get; }
+
+    /// <summary>
+    /// Implicitly converts a <see cref="SecureArrayLifetime{T}"/> to a <see cref="Span{T}"/>.
+    /// </summary>
+    public static implicit operator Span<T>(SecureArrayLifetime<T> lifetime);
+
+    /// <summary>
+    /// Securely zeroes the memory of the pinned array using cryptographic memory clearing.
+    /// </summary>
+    public void Dispose();
 }
 ```
 
@@ -367,6 +446,14 @@ namespace NCode.CryptoMemory;
 public static class BufferExtensions
 {
     /// <summary>
+    /// Wraps this span in a <see cref="SecureSpanLifetime{T}"/> that securely zeroes the memory upon disposal.
+    /// </summary>
+    /// <typeparam name="T">The type of elements in the span.</typeparam>
+    /// <param name="span">The span to wrap.</param>
+    /// <returns>A <see cref="SecureSpanLifetime{T}"/> that manages the lifetime of this span.</returns>
+    public static SecureSpanLifetime<T> GetSecureLifetime<T>(this Span<T> span) where T : struct;
+
+    /// <summary>
     /// Creates a <see cref="FixedSpanBufferWriter{T}"/> that writes to this span.
     /// </summary>
     /// <typeparam name="T">The type of elements in the span.</typeparam>
@@ -397,3 +484,4 @@ public static class BufferExtensions
 * v2.5.0 - Added implicit conversion operators on SecureBufferWriter to Sequence<T> and ReadOnlySequence<T>.
 * v2.6.0 - Updated the ownership for RefSpanLease when a single segment is returned.
 * v2.7.0 - Added ConsumeAsContiguousSpan extension method for ownership-transferring span extraction from sequences.
+* v2.8.0 - Added SecureSpanLifetime and SecureArrayLifetime ref structs for secure memory lifetime management. Added GetSecureLifetime extension method and CryptoPool.CreatePinnedArray for creating pinned arrays with secure disposal.

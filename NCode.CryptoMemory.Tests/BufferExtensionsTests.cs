@@ -20,6 +20,8 @@ namespace NCode.CryptoMemory.Tests;
 
 public class BufferExtensionsTests
 {
+    #region Span<T>.GetFixedBufferWriter Tests
+
     [Fact]
     public void GetFixedBufferWriter_ReturnsWriterWithCorrectCapacity()
     {
@@ -195,7 +197,9 @@ public class BufferExtensionsTests
         Assert.True(writer.WrittenSpan.SequenceEqual(testData));
     }
 
-    #region Memory<T> Extension Tests
+    #endregion
+
+    #region Memory<T>.GetFixedBufferWriter Tests
 
     [Fact]
     public void Memory_GetFixedBufferWriter_ReturnsWriterWithCorrectCapacity()
@@ -414,6 +418,129 @@ public class BufferExtensionsTests
     private class WriterHolder
     {
         public FixedMemoryBufferWriter<byte>? Writer { get; set; }
+    }
+
+    #endregion
+
+    #region Span<T>.GetSecureLifetime Tests
+
+    [Fact]
+    public void GetSecureLifetime_ReturnsLifetimeWithSameSpan()
+    {
+        Span<byte> buffer = stackalloc byte[64];
+        buffer.Fill(0xAB);
+
+        var lifetime = buffer.GetSecureLifetime();
+
+        Assert.Equal(64, lifetime.Span.Length);
+        Assert.True(lifetime.Span.SequenceEqual(buffer));
+    }
+
+    [Fact]
+    public void GetSecureLifetime_EmptySpan_ReturnsEmptyLifetime()
+    {
+        var lifetime = Span<byte>.Empty.GetSecureLifetime();
+
+        Assert.Equal(0, lifetime.Span.Length);
+    }
+
+    [Fact]
+    public void GetSecureLifetime_ZerosMemoryOnDispose()
+    {
+        var array = new byte[64];
+        System.Security.Cryptography.RandomNumberGenerator.Fill(array);
+        Assert.False(array.All(b => b == 0));
+
+        var lifetime = array.AsSpan().GetSecureLifetime();
+        lifetime.Dispose();
+
+        Assert.True(array.All(b => b == 0));
+    }
+
+    [Fact]
+    public void GetSecureLifetime_UsingStatement_ZerosMemoryOnExit()
+    {
+        var array = new byte[128];
+        System.Security.Cryptography.RandomNumberGenerator.Fill(array);
+        Assert.False(array.All(b => b == 0));
+
+        using (var _ = array.AsSpan().GetSecureLifetime())
+        {
+            // Work with the span
+            Assert.False(array.All(b => b == 0));
+        }
+
+        Assert.True(array.All(b => b == 0));
+    }
+
+    [Fact]
+    public void GetSecureLifetime_GenericType_Int32_Works()
+    {
+        var array = new int[16];
+        for (var i = 0; i < array.Length; i++)
+            array[i] = i + 1;
+
+        Assert.False(array.All(x => x == 0));
+
+        var lifetime = array.AsSpan().GetSecureLifetime();
+        lifetime.Dispose();
+
+        Assert.True(array.All(x => x == 0));
+    }
+
+    [Fact]
+    public void GetSecureLifetime_GenericType_Long_Works()
+    {
+        var array = new long[8];
+        for (var i = 0; i < array.Length; i++)
+            array[i] = long.MaxValue - i;
+
+        Assert.False(array.All(x => x == 0));
+
+        var lifetime = array.AsSpan().GetSecureLifetime();
+        lifetime.Dispose();
+
+        Assert.True(array.All(x => x == 0));
+    }
+
+    [Fact]
+    public void GetSecureLifetime_SpanModifications_AreReflectedInOriginal()
+    {
+        var array = new byte[16];
+        var lifetime = array.AsSpan().GetSecureLifetime();
+
+        lifetime.Span[0] = 0xFF;
+        lifetime.Span[15] = 0xAA;
+
+        Assert.Equal(0xFF, array[0]);
+        Assert.Equal(0xAA, array[15]);
+    }
+
+    [Fact]
+    public void GetSecureLifetime_ImplicitConversion_Works()
+    {
+        var array = new byte[32];
+        array[0] = 0x11;
+        array[31] = 0x22;
+
+        var lifetime = array.AsSpan().GetSecureLifetime();
+        Span<byte> convertedSpan = lifetime;
+
+        Assert.Equal(32, convertedSpan.Length);
+        Assert.Equal(0x11, convertedSpan[0]);
+        Assert.Equal(0x22, convertedSpan[31]);
+    }
+
+    [Fact]
+    public void GetSecureLifetime_StackAllocatedBuffer_Works()
+    {
+        Span<byte> buffer = stackalloc byte[256];
+        buffer.Fill(0xCD);
+
+        using var lifetime = buffer.GetSecureLifetime();
+
+        Assert.Equal(256, lifetime.Span.Length);
+        Assert.True(lifetime.Span.ToArray().All(b => b == 0xCD));
     }
 
     #endregion

@@ -27,8 +27,42 @@ namespace NCode.CryptoMemory;
 public static class BufferExtensions
 {
     /// <typeparam name="T">The type of elements in the span.</typeparam>
-    extension<T>(Span<T> span)
+    extension<T>(Span<T> span) where T : struct
     {
+        /// <summary>
+        /// Wraps this span in a <see cref="SecureSpanLifetime{T}"/> that securely zeroes the memory upon disposal.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="SecureSpanLifetime{T}"/> that manages the lifetime of this span and ensures
+        /// the memory is securely zeroed when disposed.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// This method is useful when you have a span containing sensitive data (such as cryptographic keys,
+        /// passwords, or other secrets) and want to ensure the memory is securely cleared when you're done with it.
+        /// </para>
+        /// <para>
+        /// The returned lifetime uses <see cref="System.Security.Cryptography.CryptographicOperations.ZeroMemory"/>
+        /// to ensure the memory is cleared in a way that cannot be optimized away by the compiler or JIT.
+        /// </para>
+        /// <para>
+        /// Since <see cref="SecureSpanLifetime{T}"/> is a ref struct, it can only be used on the stack
+        /// and cannot be stored in fields of reference types.
+        /// </para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// Span&lt;byte&gt; buffer = stackalloc byte[256];
+        /// using var lifetime = buffer.GetSecureLifetime();
+        /// // Use buffer for cryptographic operations
+        /// // Memory is automatically zeroed when lifetime is disposed
+        /// </code>
+        /// </example>
+        public SecureSpanLifetime<T> GetSecureLifetime()
+        {
+            return new SecureSpanLifetime<T>(span);
+        }
+
         /// <summary>
         /// Creates a <see cref="FixedSpanBufferWriter{T}"/> that writes to this span.
         /// </summary>
@@ -53,7 +87,6 @@ public static class BufferExtensions
         /// writer.Advance(10);
         /// </code>
         /// </example>
-        [PublicAPI]
         public FixedSpanBufferWriter<T> GetFixedBufferWriter()
         {
             return new FixedSpanBufferWriter<T>(span);
@@ -87,7 +120,6 @@ public static class BufferExtensions
         /// writer.Advance(10);
         /// </code>
         /// </example>
-        [PublicAPI]
         public FixedMemoryBufferWriter<T> GetFixedBufferWriter()
         {
             return new FixedMemoryBufferWriter<T>(memory);

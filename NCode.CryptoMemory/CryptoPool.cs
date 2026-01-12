@@ -56,6 +56,36 @@ public static class CryptoPool
     {
         return CryptoPool<byte>.Rent(minBufferSize, isSensitive, out buffer);
     }
+
+    /// <summary>
+    /// Creates a pinned byte array wrapped in a <see cref="SecureArrayLifetime{T}"/> that securely zeroes the memory upon disposal.
+    /// </summary>
+    /// <param name="length">The length of the array to allocate.</param>
+    /// <returns>
+    /// A <see cref="SecureArrayLifetime{T}"/> that manages the lifetime of the pinned array and ensures
+    /// the memory is securely zeroed when disposed.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// The returned array is allocated using <see cref="GC.AllocateUninitializedArray{T}(int, bool)"/>
+    /// with pinned set to true, ensuring the garbage collector will not move it in memory.
+    /// This is essential for cryptographic operations or interop scenarios.
+    /// </para>
+    /// <para>
+    /// Since <see cref="SecureArrayLifetime{T}"/> is a ref struct, it can only be used on the stack
+    /// and cannot be stored in fields of reference types.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// using var lifetime = CryptoPool.CreatePinnedArray(256);
+    /// Span&lt;byte&gt; buffer = lifetime;
+    /// // Use buffer for cryptographic operations
+    /// // Memory is automatically zeroed when lifetime is disposed
+    /// </code>
+    /// </example>
+    public static SecureArrayLifetime<byte> CreatePinnedArray(int length) =>
+        SecureArrayLifetime<byte>.Create(length);
 }
 
 /// <summary>
