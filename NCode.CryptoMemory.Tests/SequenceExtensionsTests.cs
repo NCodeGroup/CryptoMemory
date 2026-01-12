@@ -174,7 +174,7 @@ public class SequenceExtensionsTests
 
         var lease = sequence.GetSpanLease(isSensitive: false);
 
-        // Single segment returns null owner, so dispose should not throw
+        // Single segment returns sequence as owner, so dispose should not throw
         lease.Dispose();
     }
 
@@ -389,7 +389,7 @@ public class SequenceExtensionsTests
     }
 
     [Fact]
-    public void GetSpanLease_SingleSegment_NullOwner_DisposeIsSafe()
+    public void GetSpanLease_SingleSegment_SequenceAsOwner_DisposeIsSafe()
     {
         using var sequence = new Sequence<byte>();
 
@@ -397,7 +397,7 @@ public class SequenceExtensionsTests
         span[..5].Fill(0x12);
         sequence.Advance(5);
 
-        // Single segment case: owner should be null
+        // Single segment case: sequence is passed as the owner
         var lease = sequence.GetSpanLease(isSensitive: false);
 
         // Multiple disposes should be safe

@@ -181,20 +181,22 @@ namespace NCode.CryptoMemory;
 /// </summary>
 public static class SequenceExtensions
 {
-    /// <summary>
-    /// Gets a <see cref="RefSpanLease{T}"/> that provides access to the underlying data as a contiguous <see cref="ReadOnlySpan{T}"/>.
-    /// If the sequence is a single segment, the span is returned directly without allocation. Otherwise, the data is copied to a rented buffer from the crypto pool.
-    /// </summary>
     /// <typeparam name="T">The type of elements in the sequence.</typeparam>
-    /// <param name="sequence">The sequence to convert.</param>
-    /// <param name="isSensitive">
-    /// <see langword="true"/> if the data is sensitive and should be securely cleared when disposed; otherwise, <see langword="false"/>.
-    /// </param>
-    /// <returns>
-    /// A <see cref="RefSpanLease{T}"/> that provides access to the sequence data as a contiguous span.
-    /// The caller must dispose the lease to release the underlying resources.
-    /// </returns>
-    public static RefSpanLease<T> GetSpanLease<T>(this Sequence<T> sequence, bool isSensitive);
+    extension<T>(Sequence<T> buffer)
+    {
+        /// <summary>
+        /// Gets a <see cref="RefSpanLease{T}"/> that provides access to the underlying data as a contiguous <see cref="ReadOnlySpan{T}"/>.
+        /// If the sequence is a single segment, the span is returned directly without allocation. Otherwise, the data is copied to a rented buffer from the crypto pool.
+        /// </summary>
+        /// <param name="isSensitive">
+        /// <see langword="true"/> if the data is sensitive and should be securely cleared when disposed; otherwise, <see langword="false"/>.
+        /// </param>
+        /// <returns>
+        /// A <see cref="RefSpanLease{T}"/> that provides access to the sequence data as a contiguous <see cref="ReadOnlySpan{T}"/>.
+        /// The caller must dispose the lease to release the underlying resources.
+        /// </returns>
+        public RefSpanLease<T> GetSpanLease(bool isSensitive);
+    }
 }
 ```
 
@@ -376,3 +378,4 @@ public static class BufferExtensions
 * v2.3.0 - Added FixedSpanBufferWriter and BufferExtensions for high-performance fixed-size buffer writing.
 * v2.4.0 - Added FixedMemoryBufferWriter for async-compatible fixed-size buffer writing. Renamed SpanExtensions to BufferExtensions.
 * v2.5.0 - Added implicit conversion operators on SecureBufferWriter to Sequence<T> and ReadOnlySequence<T>.
+* v2.6.0 - Updated the ownership for RefSpanLease when a single segment is returned.

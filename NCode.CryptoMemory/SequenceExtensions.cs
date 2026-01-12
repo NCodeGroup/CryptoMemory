@@ -30,7 +30,7 @@ namespace NCode.CryptoMemory;
 public static class SequenceExtensions
 {
     /// <typeparam name="T">The type of elements in the sequence.</typeparam>
-    extension<T>(Sequence<T> sequence)
+    extension<T>(Sequence<T> buffer)
     {
         /// <summary>
         /// Gets a <see cref="RefSpanLease{T}"/> that provides access to the underlying data as a contiguous <see cref="ReadOnlySpan{T}"/>.
@@ -40,12 +40,12 @@ public static class SequenceExtensions
         /// <see langword="true"/> if the data is sensitive and should be securely cleared when disposed; otherwise, <see langword="false"/>.
         /// </param>
         /// <returns>
-        /// A <see cref="RefSpanLease{T}"/> that provides access to the sequence data as a contiguous span.
+        /// A <see cref="RefSpanLease{T}"/> that provides access to the sequence data as a contiguous <see cref="ReadOnlySpan{T}"/>.
         /// The caller must dispose the lease to release the underlying resources.
         /// </returns>
         /// <remarks>
         /// <para>
-        /// When the sequence consists of a single segment, the span is returned directly with a <see langword="null"/> owner,
+        /// When the sequence consists of a single segment, the span is returned directly with the sequence as the owner,
         /// meaning no additional memory allocation occurs and the caller retains ownership of the original sequence.
         /// </para>
         /// <para>
@@ -57,18 +57,17 @@ public static class SequenceExtensions
         [PublicAPI]
         public RefSpanLease<T> GetSpanLease(bool isSensitive)
         {
-            var range = sequence.AsReadOnlySequence;
-            if (range.IsSingleSegment)
+            var sequence = buffer.AsReadOnlySequence;
+            if (sequence.IsSingleSegment)
             {
-                // the caller owns the original sequence, so we don't need to rent anything
-                return new RefSpanLease<T>(owner: null, range.First.Span);
+                return new RefSpanLease<T>(buffer, sequence.First.Span);
             }
 
-            Debug.Assert(sequence.Length <= int.MaxValue, "Sequence length exceeds int.MaxValue.");
-            var owner = CryptoPool<T>.Rent((int)sequence.Length, isSensitive, out Span<T> destination);
+            Debug.Assert(buffer.Length <= int.MaxValue, "Sequence length exceeds int.MaxValue.");
+            var owner = CryptoPool<T>.Rent((int)buffer.Length, isSensitive, out Span<T> destination);
             try
             {
-                range.CopyTo(destination);
+                sequence.CopyTo(destination);
                 return new RefSpanLease<T>(owner, destination);
             }
             catch
