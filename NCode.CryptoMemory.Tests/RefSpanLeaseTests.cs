@@ -176,7 +176,8 @@ public class RefSpanLeaseTests
     public void WithSecureMemory_Valid()
     {
         const int bufferSize = 100;
-        using var secureMemory = new SecureMemory<byte>(SecureMemoryPool<byte>.Shared, bufferSize);
+        // Use null pool to avoid returning this non-standard sized buffer to the shared pool
+        using var secureMemory = new SecureMemory<byte>(null, bufferSize);
 
         var span = secureMemory.Memory.Span;
         for (var i = 0; i < bufferSize; i++)
