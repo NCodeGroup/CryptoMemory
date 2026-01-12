@@ -196,6 +196,23 @@ public static class SequenceExtensions
         /// The caller must dispose the lease to release the underlying resources.
         /// </returns>
         public RefSpanLease<T> GetSpanLease(bool isSensitive);
+
+        /// <summary>
+        /// Consumes the sequence and returns an <see cref="IDisposable"/> owner along with a contiguous <see cref="ReadOnlySpan{T}"/> of the data.
+        /// This method transfers ownership of the underlying buffer to the caller and disposes the original sequence.
+        /// </summary>
+        /// <param name="isSensitive">
+        /// <see langword="true"/> if the data is sensitive and should be securely cleared when disposed; otherwise, <see langword="false"/>.
+        /// </param>
+        /// <param name="span">
+        /// When this method returns, contains a <see cref="ReadOnlySpan{T}"/> representing the contiguous data from the sequence.
+        /// </param>
+        /// <returns>
+        /// An <see cref="IDisposable"/> that owns the underlying buffer. The caller must dispose this owner to release the underlying resources.
+        /// For single-segment sequences, this is the original sequence buffer.
+        /// For multi-segment sequences, this is a rented buffer from <see cref="CryptoPool{T}"/>.
+        /// </returns>
+        public IDisposable ConsumeAsContiguousSpan(bool isSensitive, out ReadOnlySpan<T> span);
     }
 }
 ```
@@ -379,3 +396,4 @@ public static class BufferExtensions
 * v2.4.0 - Added FixedMemoryBufferWriter for async-compatible fixed-size buffer writing. Renamed SpanExtensions to BufferExtensions.
 * v2.5.0 - Added implicit conversion operators on SecureBufferWriter to Sequence<T> and ReadOnlySequence<T>.
 * v2.6.0 - Updated the ownership for RefSpanLease when a single segment is returned.
+* v2.7.0 - Added ConsumeAsContiguousSpan extension method for ownership-transferring span extraction from sequences.

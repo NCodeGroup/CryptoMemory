@@ -476,4 +476,379 @@ public class SequenceExtensionsTests
 
         Assert.Equal(pageSize, lease.Span.Length);
     }
+
+    #region ConsumeAsContiguousSpan Tests
+
+    [Fact]
+    public void ConsumeAsContiguousSpan_EmptySequence_ReturnsEmptySpan()
+    {
+        var sequence = new Sequence<byte>();
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: false, out var span);
+
+        Assert.True(span.IsEmpty);
+        Assert.Equal(0, span.Length);
+
+        owner.Dispose();
+    }
+
+    [Fact]
+    public void ConsumeAsContiguousSpan_EmptySequence_Sensitive_ReturnsEmptySpan()
+    {
+        var sequence = new Sequence<byte>();
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: true, out var span);
+
+        Assert.True(span.IsEmpty);
+        Assert.Equal(0, span.Length);
+
+        owner.Dispose();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConsumeAsContiguousSpan_SingleSegment_ReturnsSpanDirectly(bool isSensitive)
+    {
+        var sequence = new Sequence<byte>();
+
+        var writeSpan = sequence.GetSpan(10);
+        for (var i = 0; i < 10; i++)
+        {
+            writeSpan[i] = (byte)(i + 1);
+        }
+
+        sequence.Advance(10);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive, out var span);
+
+        Assert.Equal(10, span.Length);
+        for (var i = 0; i < 10; i++)
+        {
+            Assert.Equal((byte)(i + 1), span[i]);
+        }
+
+        owner.Dispose();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConsumeAsContiguousSpan_MultipleSegments_CopiesDataToContiguousBuffer(bool isSensitive)
+    {
+        var sequence = new Sequence<byte>(SecureMemoryPool<byte>.Shared);
+
+        const int pageSize = SecureMemoryPool<byte>.PageSize;
+        var totalSize = pageSize + 100;
+
+        var span1 = sequence.GetSpan(pageSize);
+        for (var i = 0; i < pageSize; i++)
+        {
+            span1[i] = (byte)(i % 256);
+        }
+
+        sequence.Advance(pageSize);
+
+        var span2 = sequence.GetSpan(100);
+        for (var i = 0; i < 100; i++)
+        {
+            span2[i] = (byte)((pageSize + i) % 256);
+        }
+
+        sequence.Advance(100);
+
+        var readOnlySequence = sequence.AsReadOnlySequence;
+        Assert.False(readOnlySequence.IsSingleSegment);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive, out var span);
+
+        Assert.Equal(totalSize, span.Length);
+
+        for (var i = 0; i < totalSize; i++)
+        {
+            Assert.Equal((byte)(i % 256), span[i]);
+        }
+
+        owner.Dispose();
+    }
+
+    [Fact]
+    public void ConsumeAsContiguousSpan_SingleSegment_ReturnsSequenceAsOwner()
+    {
+        var sequence = new Sequence<byte>();
+
+        var testData = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF };
+        var writeSpan = sequence.GetSpan(testData.Length);
+        testData.CopyTo(writeSpan);
+        sequence.Advance(testData.Length);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: true, out var span);
+
+        // For single segment, the owner should be the sequence itself
+        Assert.Same(sequence, owner);
+        Assert.Equal(testData.Length, span.Length);
+        Assert.True(span.SequenceEqual(testData));
+
+        owner.Dispose();
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(100)]
+    [InlineData(1000)]
+    [InlineData(4096)]
+    public void ConsumeAsContiguousSpan_VariousSizes_ReturnsCorrectLength(int size)
+    {
+        var sequence = new Sequence<byte>();
+
+        var writeSpan = sequence.GetSpan(size);
+        writeSpan[..size].Fill(0xFF);
+        sequence.Advance(size);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: false, out var span);
+
+        Assert.Equal(size, span.Length);
+
+        owner.Dispose();
+    }
+
+    [Fact]
+    public void ConsumeAsContiguousSpan_MultipleSegments_DisposesOriginalSequence()
+    {
+        var sequence = new Sequence<byte>(SecureMemoryPool<byte>.Shared);
+
+        const int pageSize = SecureMemoryPool<byte>.PageSize;
+        var totalSize = pageSize + 100;
+
+        var span1 = sequence.GetSpan(pageSize);
+        span1[..pageSize].Fill(0x01);
+        sequence.Advance(pageSize);
+
+        var span2 = sequence.GetSpan(100);
+        span2[..100].Fill(0x02);
+        sequence.Advance(100);
+
+        Assert.False(sequence.AsReadOnlySequence.IsSingleSegment);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: true, out var span);
+
+        Assert.Equal(totalSize, span.Length);
+
+        // The original sequence should be disposed (length should be 0)
+        Assert.Equal(0, sequence.Length);
+
+        owner.Dispose();
+    }
+
+    [Fact]
+    public void ConsumeAsContiguousSpan_GenericType_Int32_Works()
+    {
+        var sequence = new Sequence<int>();
+
+        var testData = new[] { 100, 200, 300, 400, 500 };
+        var writeSpan = sequence.GetSpan(testData.Length);
+        testData.CopyTo(writeSpan);
+        sequence.Advance(testData.Length);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: false, out var span);
+
+        Assert.Equal(testData.Length, span.Length);
+        Assert.True(span.SequenceEqual(testData));
+
+        owner.Dispose();
+    }
+
+    [Fact]
+    public void ConsumeAsContiguousSpan_GenericType_Char_Works()
+    {
+        var sequence = new Sequence<char>();
+
+        var testData = "Hello".ToCharArray();
+        var writeSpan = sequence.GetSpan(testData.Length);
+        testData.CopyTo(writeSpan);
+        sequence.Advance(testData.Length);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: false, out var span);
+
+        Assert.Equal(testData.Length, span.Length);
+        Assert.True(span.SequenceEqual(testData));
+
+        owner.Dispose();
+    }
+
+    [Fact]
+    public void ConsumeAsContiguousSpan_GenericType_Double_Works()
+    {
+        var sequence = new Sequence<double>();
+
+        var testData = new[] { 1.1, 2.2, 3.3, 4.4, 5.5 };
+        var writeSpan = sequence.GetSpan(testData.Length);
+        testData.CopyTo(writeSpan);
+        sequence.Advance(testData.Length);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: true, out var span);
+
+        Assert.Equal(testData.Length, span.Length);
+        Assert.True(span.SequenceEqual(testData));
+
+        owner.Dispose();
+    }
+
+    [Fact]
+    public void ConsumeAsContiguousSpan_MultipleSegments_PreservesDataOrder()
+    {
+        var sequence = new Sequence<byte>(SecureMemoryPool<byte>.Shared);
+
+        const int pageSize = SecureMemoryPool<byte>.PageSize;
+
+        var span1 = sequence.GetSpan(pageSize);
+        span1[..pageSize].Fill(0xAA);
+        sequence.Advance(pageSize);
+
+        var span2 = sequence.GetSpan(pageSize);
+        span2[..pageSize].Fill(0xBB);
+        sequence.Advance(pageSize);
+
+        var span3 = sequence.GetSpan(100);
+        span3[..100].Fill(0xCC);
+        sequence.Advance(100);
+
+        Assert.False(sequence.AsReadOnlySequence.IsSingleSegment);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: true, out var span);
+
+        Assert.Equal(pageSize * 2 + 100, span.Length);
+
+        for (var i = 0; i < pageSize; i++)
+        {
+            Assert.Equal(0xAA, span[i]);
+        }
+
+        for (var i = pageSize; i < pageSize * 2; i++)
+        {
+            Assert.Equal(0xBB, span[i]);
+        }
+
+        for (var i = pageSize * 2; i < pageSize * 2 + 100; i++)
+        {
+            Assert.Equal(0xCC, span[i]);
+        }
+
+        owner.Dispose();
+    }
+
+    [Fact]
+    public void ConsumeAsContiguousSpan_LargeMultipleSegments_HandlesCorrectly()
+    {
+        var sequence = new Sequence<byte>(SecureMemoryPool<byte>.Shared);
+
+        const int pageSize = SecureMemoryPool<byte>.PageSize;
+        const int totalPages = 5;
+        var totalSize = pageSize * totalPages;
+
+        for (var page = 0; page < totalPages; page++)
+        {
+            var writeSpan = sequence.GetSpan(pageSize);
+            writeSpan[..pageSize].Fill((byte)(page + 1));
+            sequence.Advance(pageSize);
+        }
+
+        Assert.False(sequence.AsReadOnlySequence.IsSingleSegment);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: true, out var span);
+
+        Assert.Equal(totalSize, span.Length);
+
+        for (var page = 0; page < totalPages; page++)
+        {
+            for (var i = 0; i < pageSize; i++)
+            {
+                Assert.Equal((byte)(page + 1), span[page * pageSize + i]);
+            }
+        }
+
+        owner.Dispose();
+    }
+
+    [Fact]
+    public void ConsumeAsContiguousSpan_SingleByte_Works()
+    {
+        var sequence = new Sequence<byte>();
+
+        var writeSpan = sequence.GetSpan(1);
+        writeSpan[0] = 0x42;
+        sequence.Advance(1);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: true, out var span);
+
+        Assert.Equal(1, span.Length);
+        Assert.Equal(0x42, span[0]);
+
+        owner.Dispose();
+    }
+
+    [Fact]
+    public void ConsumeAsContiguousSpan_ExactlyOnePage_IsSingleSegment()
+    {
+        var sequence = new Sequence<byte>(SecureMemoryPool<byte>.Shared);
+
+        const int pageSize = SecureMemoryPool<byte>.PageSize;
+
+        var writeSpan = sequence.GetSpan(pageSize);
+        for (var i = 0; i < pageSize; i++)
+        {
+            writeSpan[i] = (byte)(i % 256);
+        }
+
+        sequence.Advance(pageSize);
+
+        Assert.True(sequence.AsReadOnlySequence.IsSingleSegment);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: false, out var span);
+
+        Assert.Equal(pageSize, span.Length);
+
+        owner.Dispose();
+    }
+
+    [Fact]
+    public void ConsumeAsContiguousSpan_OwnerDispose_DoesNotThrow()
+    {
+        var sequence = new Sequence<byte>();
+
+        var writeSpan = sequence.GetSpan(10);
+        writeSpan[..10].Fill(0xAB);
+        sequence.Advance(10);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: false, out _);
+
+        // Dispose should not throw
+        owner.Dispose();
+    }
+
+    [Fact]
+    public void ConsumeAsContiguousSpan_MultipleSegments_OwnerDispose_ReleasesRentedBuffer()
+    {
+        var sequence = new Sequence<byte>(SecureMemoryPool<byte>.Shared);
+
+        const int pageSize = SecureMemoryPool<byte>.PageSize;
+
+        var span1 = sequence.GetSpan(pageSize);
+        span1[..pageSize].Fill(0x01);
+        sequence.Advance(pageSize);
+
+        var span2 = sequence.GetSpan(100);
+        span2[..100].Fill(0x02);
+        sequence.Advance(100);
+
+        Assert.False(sequence.AsReadOnlySequence.IsSingleSegment);
+
+        var owner = sequence.ConsumeAsContiguousSpan(isSensitive: true, out var span);
+        Assert.Equal(pageSize + 100, span.Length);
+
+        // Dispose should not throw and should release the rented buffer
+        owner.Dispose();
+    }
+
+    #endregion
 }

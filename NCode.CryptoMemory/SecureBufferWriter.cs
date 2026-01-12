@@ -42,6 +42,13 @@ public sealed class SecureBufferWriter<T> : IBufferWriter<T>, IDisposable
     [EditorBrowsable(EditorBrowsableState.Never)]
     public Sequence<T> Sequence { get; } = new(SecureMemoryPool<T>.Shared);
 
+    /// <inheritdoc cref="Sequence{T}.MinimumSpanLength" />
+    public int MinimumSpanLength
+    {
+        get => Sequence.MinimumSpanLength;
+        set => Sequence.MinimumSpanLength = value;
+    }
+
     /// <summary>
     /// Gets the total length of the data written to the buffer.
     /// </summary>

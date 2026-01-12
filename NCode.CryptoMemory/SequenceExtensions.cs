@@ -76,5 +76,64 @@ public static class SequenceExtensions
                 throw;
             }
         }
+
+        /// <summary>
+        /// Consumes the sequence and returns an <see cref="IDisposable"/> owner along with a contiguous <see cref="ReadOnlySpan{T}"/> of the data.
+        /// This method transfers ownership of the underlying buffer to the caller and disposes the original sequence.
+        /// </summary>
+        /// <param name="isSensitive">
+        /// <see langword="true"/> if the data is sensitive and should be securely cleared when disposed; otherwise, <see langword="false"/>.
+        /// </param>
+        /// <param name="span">
+        /// When this method returns, contains a <see cref="ReadOnlySpan{T}"/> representing the contiguous data from the sequence.
+        /// </param>
+        /// <returns>
+        /// An <see cref="IDisposable"/> that owns the underlying buffer. The caller must dispose this owner to release the underlying resources.
+        /// For single-segment sequences, this is the original sequence buffer.
+        /// For multi-segment sequences, this is a rented buffer from <see cref="CryptoPool{T}"/>.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// This method assumes lifecycle ownership of the sequence data. After calling this method, the original sequence is disposed
+        /// and should no longer be used. The caller becomes responsible for disposing the returned owner.
+        /// </para>
+        /// <para>
+        /// When the sequence consists of a single segment, the span is returned directly and the sequence itself is returned as the owner.
+        /// </para>
+        /// <para>
+        /// When the sequence spans multiple segments, a buffer is rented from <see cref="CryptoPool{T}"/>, the data is copied into it,
+        /// and the original sequence is disposed. If <paramref name="isSensitive"/> is <see langword="true"/>, the rented buffer will
+        /// be securely cleared upon disposal.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="Exception">Any exception thrown during the copy operation will result in the rented buffer being disposed before re-throwing.</exception>
+        [PublicAPI]
+        public IDisposable ConsumeAsContiguousSpan(bool isSensitive, out ReadOnlySpan<T> span)
+        {
+            var sequence = buffer.AsReadOnlySequence;
+            if (sequence.IsSingleSegment)
+            {
+                span = sequence.First.Span;
+                return buffer;
+            }
+
+            Debug.Assert(buffer.Length <= int.MaxValue, "Sequence length exceeds int.MaxValue.");
+            var owner = CryptoPool<T>.Rent((int)buffer.Length, isSensitive, out Span<T> destination);
+            try
+            {
+                sequence.CopyTo(destination);
+                span = destination;
+                return owner;
+            }
+            catch
+            {
+                owner.Dispose();
+                throw;
+            }
+            finally
+            {
+                buffer.Dispose();
+            }
+        }
     }
 }
