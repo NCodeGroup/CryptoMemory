@@ -567,3 +567,4 @@ public static class BufferExtensions
 * v2.7.0 - Added ConsumeAsContiguousSpan extension method for ownership-transferring span extraction from sequences.
 * v2.8.0 - Added SecureSpanLifetime and SecureArrayLifetime ref structs for secure memory lifetime management. Added GetSecureLifetime extension method and CryptoPool.CreatePinnedArray for creating pinned arrays with secure disposal.
 * v3.0.0 - Added SecureMemoryFactory as a unified API for secure memory operations. Added generic Rent<T> and CreatePinnedArray<T> methods for working with any struct type.
+* v3.1.0 - Added additional implicit conversion operators on SecureArrayLifetime for easier usage.

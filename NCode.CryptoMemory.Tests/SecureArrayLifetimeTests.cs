@@ -65,6 +65,49 @@ public class SecureArrayLifetimeTests
     }
 
     [Fact]
+    public void ImplicitConversionToArray_ReturnsPinnedArray()
+    {
+        using var lifetime = new SecureArrayLifetime<byte>(64);
+        lifetime.PinnedArray[0] = 0xAB;
+        lifetime.PinnedArray[63] = 0xCD;
+
+        byte[] array = lifetime;
+
+        Assert.Same(lifetime.PinnedArray, array);
+        Assert.Equal(64, array.Length);
+        Assert.Equal(0xAB, array[0]);
+        Assert.Equal(0xCD, array[63]);
+    }
+
+    [Fact]
+    public void ImplicitConversionToArray_GenericType_Int32_Works()
+    {
+        using var lifetime = new SecureArrayLifetime<int>(16);
+        lifetime.PinnedArray[0] = 100;
+        lifetime.PinnedArray[15] = 200;
+
+        int[] array = lifetime;
+
+        Assert.Same(lifetime.PinnedArray, array);
+        Assert.Equal(100, array[0]);
+        Assert.Equal(200, array[15]);
+    }
+
+    [Fact]
+    public void ImplicitConversionToArray_ArrayIsZeroedOnDispose()
+    {
+        var lifetime = SecureArrayLifetime<byte>.Create(64);
+        RandomNumberGenerator.Fill(lifetime.PinnedArray);
+
+        byte[] array = lifetime;
+        Assert.False(array.All(b => b == 0));
+
+        lifetime.Dispose();
+
+        Assert.True(array.All(b => b == 0));
+    }
+
+    [Fact]
     public void Dispose_ZerosMemory_ByteArray()
     {
         var lifetime = SecureArrayLifetime<byte>.Create(64);
