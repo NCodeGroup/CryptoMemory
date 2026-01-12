@@ -89,6 +89,87 @@ public static class CryptoPool
 }
 ```
 
+### SecureMemoryFactory
+
+```csharp
+namespace NCode.CryptoMemory;
+
+/// <summary>
+/// Provides factory methods for creating and renting secure memory buffers that can be pinned
+/// during their lifetime and securely zeroed when disposed.
+/// </summary>
+public static class SecureMemoryFactory
+{
+    /// <summary>
+    /// Retrieves a buffer that is at least the requested length.
+    /// </summary>
+    /// <typeparam name="T">The type of elements in the buffer.</typeparam>
+    /// <param name="minBufferSize">The minimum length of the buffer needed.</param>
+    /// <param name="isSensitive">Indicates whether the buffer should be pinned during it's lifetime and securely zeroed when returned.</param>
+    /// <param name="buffer">When this method returns, contains the buffer with the exact requested size.</param>
+    /// <returns>An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the lease.</returns>
+    public static IMemoryOwner<T> Rent<T>(int minBufferSize, bool isSensitive, out Span<T> buffer);
+
+    /// <summary>
+    /// Retrieves a buffer that is at least the requested length.
+    /// </summary>
+    /// <param name="minBufferSize">The minimum length of the buffer needed.</param>
+    /// <param name="isSensitive">Indicates whether the buffer should be pinned during it's lifetime and securely zeroed when returned.</param>
+    /// <param name="buffer">When this method returns, contains the buffer with the exact requested size.</param>
+    /// <returns>An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the lease.</returns>
+    public static IMemoryOwner<byte> Rent(int minBufferSize, bool isSensitive, out Span<byte> buffer);
+
+    /// <summary>
+    /// Retrieves a buffer that is at least the requested length.
+    /// </summary>
+    /// <typeparam name="T">The type of elements in the buffer.</typeparam>
+    /// <param name="minBufferSize">The minimum length of the buffer needed.</param>
+    /// <param name="isSensitive">Indicates whether the buffer should be pinned during it's lifetime and securely zeroed when returned.</param>
+    /// <param name="buffer">When this method returns, contains the buffer with the exact requested size.</param>
+    /// <returns>An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the lease.</returns>
+    public static IMemoryOwner<T> Rent<T>(int minBufferSize, bool isSensitive, out Memory<T> buffer);
+
+    /// <summary>
+    /// Retrieves a buffer that is at least the requested length.
+    /// </summary>
+    /// <param name="minBufferSize">The minimum length of the buffer needed.</param>
+    /// <param name="isSensitive">Indicates whether the buffer should be pinned during it's lifetime and securely zeroed when returned.</param>
+    /// <param name="buffer">When this method returns, contains the buffer with the exact requested size.</param>
+    /// <returns>An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the lease.</returns>
+    public static IMemoryOwner<byte> Rent(int minBufferSize, bool isSensitive, out Memory<byte> buffer);
+
+    /// <summary>
+    /// Creates a pinned array of the specified type wrapped in a <see cref="SecureArrayLifetime{T}"/> that securely zeroes the memory upon disposal.
+    /// </summary>
+    /// <typeparam name="T">The type of elements in the array. Must be an unmanaged value type.</typeparam>
+    /// <param name="length">The length of the array to allocate.</param>
+    /// <returns>A <see cref="SecureArrayLifetime{T}"/> that manages the lifetime of the pinned array.</returns>
+    public static SecureArrayLifetime<T> CreatePinnedArray<T>(int length) where T : struct;
+
+    /// <summary>
+    /// Creates a pinned byte array wrapped in a <see cref="SecureArrayLifetime{T}"/> that securely zeroes the memory upon disposal.
+    /// </summary>
+    /// <param name="length">The length of the array to allocate.</param>
+    /// <returns>A <see cref="SecureArrayLifetime{T}"/> that manages the lifetime of the pinned array.</returns>
+    public static SecureArrayLifetime<byte> CreatePinnedArray(int length);
+
+    /// <summary>
+    /// Creates a new <see cref="SecureBufferWriter{T}"/> for building sequences of data that will be securely zeroed when disposed.
+    /// </summary>
+    /// <typeparam name="T">The type of elements in the buffer.</typeparam>
+    /// <param name="minimumSpanLength">The minimum length for each span segment allocated by the buffer writer.</param>
+    /// <returns>A new <see cref="SecureBufferWriter{T}"/> instance.</returns>
+    public static SecureBufferWriter<T> CreateSecureBuffer<T>(int minimumSpanLength = 0);
+
+    /// <summary>
+    /// Creates a new <see cref="SecureBufferWriter{T}"/> for building sequences of byte data that will be securely zeroed when disposed.
+    /// </summary>
+    /// <param name="minimumSpanLength">The minimum length for each span segment allocated by the buffer writer.</param>
+    /// <returns>A new <see cref="SecureBufferWriter{T}"/> instance.</returns>
+    public static SecureBufferWriter<byte> CreateSecureBuffer(int minimumSpanLength = 0);
+}
+```
+
 ### SecureSpanLifetime
 
 ```csharp
@@ -485,3 +566,4 @@ public static class BufferExtensions
 * v2.6.0 - Updated the ownership for RefSpanLease when a single segment is returned.
 * v2.7.0 - Added ConsumeAsContiguousSpan extension method for ownership-transferring span extraction from sequences.
 * v2.8.0 - Added SecureSpanLifetime and SecureArrayLifetime ref structs for secure memory lifetime management. Added GetSecureLifetime extension method and CryptoPool.CreatePinnedArray for creating pinned arrays with secure disposal.
+* v3.0.0 - Added SecureMemoryFactory as a unified API for secure memory operations. Added generic Rent<T> and CreatePinnedArray<T> methods for working with any struct type.
