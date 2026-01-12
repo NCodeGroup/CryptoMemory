@@ -39,10 +39,6 @@ public sealed class SecureBufferWriter<T> : IBufferWriter<T>, IDisposable
     /// <summary>
     /// Gets the underlying <see cref="Nerdbank.Streams.Sequence{T}"/> used for buffering data.
     /// </summary>
-    /// <remarks>
-    /// This property is hidden from IntelliSense and is intended for advanced scenarios or internal use only.
-    /// Direct manipulation of the sequence may bypass secure memory management features.
-    /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public Sequence<T> Sequence { get; } = new(SecureMemoryPool<T>.Shared);
 
@@ -57,6 +53,28 @@ public sealed class SecureBufferWriter<T> : IBufferWriter<T>, IDisposable
     /// </summary>
     /// <value>A <see cref="ReadOnlySequence{T}"/> containing all data written to the buffer.</value>
     public ReadOnlySequence<T> AsReadOnlySequence => Sequence;
+
+    /// <summary>
+    /// Converts a <see cref="SecureBufferWriter{T}"/> to the underlying <see cref="Nerdbank.Streams.Sequence{T}"/>.
+    /// </summary>
+    /// <param name="buffer">The buffer to convert. May be <see langword="null"/>.</param>
+    /// <returns>
+    /// The underlying <see cref="Nerdbank.Streams.Sequence{T}"/> used for buffering data,
+    /// or <see langword="null"/> if <paramref name="buffer"/> is <see langword="null"/>.
+    /// </returns>
+    public static implicit operator Sequence<T>?(SecureBufferWriter<T>? buffer) =>
+        buffer?.Sequence;
+
+    /// <summary>
+    /// Converts a <see cref="SecureBufferWriter{T}"/> to a <see cref="ReadOnlySequence{T}"/>.
+    /// </summary>
+    /// <param name="buffer">The buffer to convert. May be <see langword="null"/>.</param>
+    /// <returns>
+    /// A <see cref="ReadOnlySequence{T}"/> containing all data written to the buffer,
+    /// or <see cref="ReadOnlySequence{T}.Empty"/> if <paramref name="buffer"/> is <see langword="null"/>.
+    /// </returns>
+    public static implicit operator ReadOnlySequence<T>(SecureBufferWriter<T>? buffer) =>
+        buffer is null ? ReadOnlySequence<T>.Empty : buffer.Sequence;
 
     /// <summary>
     /// Releases all resources used by the <see cref="SecureBufferWriter{T}"/> and securely clears the underlying memory.

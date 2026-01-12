@@ -17,6 +17,7 @@
 #endregion
 
 using System.Buffers;
+using Nerdbank.Streams;
 
 namespace NCode.CryptoMemory.Tests;
 
@@ -241,5 +242,74 @@ public class SecureBufferWriterTests
 
         // Verify the writer is using a Sequence backed by SecureMemoryPool
         Assert.NotNull(writer.Sequence);
+    }
+
+    [Fact]
+    public void ImplicitOperator_ToSequence_WithBuffer_Valid()
+    {
+        using var writer = new SecureBufferWriter<byte>();
+
+        var span = writer.GetSpan(10);
+        for (var i = 0; i < 5; i++)
+        {
+            span[i] = (byte)(i + 1);
+        }
+        writer.Advance(5);
+
+        Sequence<byte>? sequence = writer;
+
+        Assert.NotNull(sequence);
+        Assert.Same(writer.Sequence, sequence);
+    }
+
+    [Fact]
+    public void ImplicitOperator_ToSequence_WithNull_Valid()
+    {
+        SecureBufferWriter<byte>? writer = null;
+
+        Sequence<byte>? sequence = writer;
+
+        Assert.Null(sequence);
+    }
+
+    [Fact]
+    public void ImplicitOperator_ToReadOnlySequence_WithBuffer_Valid()
+    {
+        using var writer = new SecureBufferWriter<byte>();
+
+        var span = writer.GetSpan(10);
+        for (var i = 0; i < 5; i++)
+        {
+            span[i] = (byte)(i + 1);
+        }
+        writer.Advance(5);
+
+        ReadOnlySequence<byte> sequence = writer;
+
+        Assert.False(sequence.IsEmpty);
+        Assert.Equal(5, sequence.Length);
+        Assert.Equal(new byte[] { 1, 2, 3, 4, 5 }, sequence.ToArray());
+    }
+
+    [Fact]
+    public void ImplicitOperator_ToReadOnlySequence_WithNull_Valid()
+    {
+        SecureBufferWriter<byte>? writer = null;
+
+        ReadOnlySequence<byte> sequence = writer;
+
+        Assert.True(sequence.IsEmpty);
+        Assert.Equal(0, sequence.Length);
+    }
+
+    [Fact]
+    public void ImplicitOperator_ToReadOnlySequence_Empty_Valid()
+    {
+        using var writer = new SecureBufferWriter<byte>();
+
+        ReadOnlySequence<byte> sequence = writer;
+
+        Assert.True(sequence.IsEmpty);
+        Assert.Equal(0, sequence.Length);
     }
 }

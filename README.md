@@ -101,6 +101,26 @@ public class SecureBufferWriter<T> : IBufferWriter<T>, IDisposable
     public ReadOnlySequence<T> AsReadOnlySequence { get; }
 
     /// <summary>
+    /// Converts a <see cref="SecureBufferWriter{T}"/> to the underlying <see cref="Sequence{T}"/>.
+    /// </summary>
+    /// <param name="buffer">The buffer to convert. May be <see langword="null"/>.</param>
+    /// <returns>
+    /// The underlying <see cref="Sequence{T}"/> used for buffering data,
+    /// or <see langword="null"/> if <paramref name="buffer"/> is <see langword="null"/>.
+    /// </returns>
+    public static implicit operator Sequence<T>?(SecureBufferWriter<T>? buffer);
+
+    /// <summary>
+    /// Converts a <see cref="SecureBufferWriter{T}"/> to a <see cref="ReadOnlySequence{T}"/>.
+    /// </summary>
+    /// <param name="buffer">The buffer to convert. May be <see langword="null"/>.</param>
+    /// <returns>
+    /// A <see cref="ReadOnlySequence{T}"/> containing all data written to the buffer,
+    /// or <see cref="ReadOnlySequence{T}.Empty"/> if <paramref name="buffer"/> is <see langword="null"/>.
+    /// </returns>
+    public static implicit operator ReadOnlySequence<T>(SecureBufferWriter<T>? buffer);
+
+    /// <summary>
     /// Disposes the buffer writer and releases all associated memory.
     /// </summary>
     public void Dispose();
@@ -355,3 +375,4 @@ public static class BufferExtensions
 * v2.2.0 - Added RefSpanLease and SequenceExtensions for secure span operations on sequences.
 * v2.3.0 - Added FixedSpanBufferWriter and BufferExtensions for high-performance fixed-size buffer writing.
 * v2.4.0 - Added FixedMemoryBufferWriter for async-compatible fixed-size buffer writing. Renamed SpanExtensions to BufferExtensions.
+* v2.5.0 - Added implicit conversion operators on SecureBufferWriter to Sequence<T> and ReadOnlySequence<T>.
