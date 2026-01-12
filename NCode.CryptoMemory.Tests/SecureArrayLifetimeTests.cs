@@ -28,6 +28,7 @@ public class SecureArrayLifetimeTests
         using var lifetime = SecureArrayLifetime<byte>.Create(64);
 
         Assert.Equal(64, lifetime.PinnedArray.Length);
+        Assert.Equal(64, lifetime.Length);
     }
 
     [Fact]
@@ -37,6 +38,37 @@ public class SecureArrayLifetimeTests
 
         Assert.NotNull(lifetime.PinnedArray);
         Assert.Equal(128, lifetime.PinnedArray.Length);
+        Assert.Equal(128, lifetime.Length);
+    }
+
+    [Fact]
+    public void Length_ReturnsCorrectValue()
+    {
+        using var lifetime = new SecureArrayLifetime<byte>(256);
+
+        Assert.Equal(256, lifetime.Length);
+    }
+
+    [Fact]
+    public void Length_MatchesPinnedArrayLength()
+    {
+        using var lifetime = new SecureArrayLifetime<int>(32);
+
+        Assert.Equal(lifetime.PinnedArray.Length, lifetime.Length);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(16)]
+    [InlineData(256)]
+    [InlineData(1024)]
+    [InlineData(4096)]
+    public void Length_VariousSizes_ReturnsCorrectValue(int expectedLength)
+    {
+        using var lifetime = SecureArrayLifetime<byte>.Create(expectedLength);
+
+        Assert.Equal(expectedLength, lifetime.Length);
     }
 
     [Fact]

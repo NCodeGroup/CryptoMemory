@@ -228,6 +228,16 @@ public readonly ref struct SecureArrayLifetime<T> : IDisposable
     public T[] PinnedArray { get; }
 
     /// <summary>
+    /// Gets the length of the pinned array.
+    /// </summary>
+    public int Length { get; }
+
+    /// <summary>
+    /// Implicitly converts a <see cref="SecureArrayLifetime{T}"/> to a <typeparamref name="T"/> array.
+    /// </summary>
+    public static implicit operator T[](SecureArrayLifetime<T> lifetime);
+
+    /// <summary>
     /// Implicitly converts a <see cref="SecureArrayLifetime{T}"/> to a <see cref="Span{T}"/>.
     /// </summary>
     public static implicit operator Span<T>(SecureArrayLifetime<T> lifetime);
@@ -568,3 +578,4 @@ public static class BufferExtensions
 * v2.8.0 - Added SecureSpanLifetime and SecureArrayLifetime ref structs for secure memory lifetime management. Added GetSecureLifetime extension method and CryptoPool.CreatePinnedArray for creating pinned arrays with secure disposal.
 * v3.0.0 - Added SecureMemoryFactory as a unified API for secure memory operations. Added generic Rent<T> and CreatePinnedArray<T> methods for working with any struct type.
 * v3.1.0 - Added additional implicit conversion operators on SecureArrayLifetime for easier usage.
+* v3.2.0 - Added Length property on SecureArrayLifetime for easier usage.

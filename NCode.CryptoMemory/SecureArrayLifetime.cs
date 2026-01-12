@@ -69,6 +69,11 @@ public readonly ref struct SecureArrayLifetime<T>(int length) : IDisposable
     public T[] PinnedArray { get; } = GC.AllocateUninitializedArray<T>(length, pinned: true);
 
     /// <summary>
+    /// Gets the length of the pinned array.
+    /// </summary>
+    public int Length => PinnedArray.Length;
+
+    /// <summary>
     /// Implicitly converts a <see cref="SecureArrayLifetime{T}"/> to a <typeparamref name="T"/> array.
     /// </summary>
     /// <param name="lifetime">The lifetime to convert.</param>
