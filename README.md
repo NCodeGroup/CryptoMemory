@@ -2,6 +2,10 @@
 
 # NCode.CryptoMemory
 
+> ⚠️ **DEPRECATED**: This project is deprecated and no longer maintained. Please use [NCode.Buffers](https://github.com/NCodeGroup/Buffers) instead, which combines functionality from multiple projects into one package with additional features.
+>
+> [![Nuget](https://img.shields.io/nuget/v/NCode.Buffers.svg)](https://www.nuget.org/packages/NCode.Buffers/)
+
 Provides the ability to manage the lifetime of memory by pinning buffers to prevent duplicate
 copies in ram and securely zeroing sensitive data when no longer needed. Also provides secure
 encodings that throw an exception when invalid bytes are encountered.
